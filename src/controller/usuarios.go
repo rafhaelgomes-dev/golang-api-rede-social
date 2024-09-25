@@ -1,9 +1,43 @@
 package controller
 
-import "net/http"
+import (
+	"encoding/json"
+	"fmt"
+	"golang-rede-social/src/banco"
+	"golang-rede-social/src/model"
+	"golang-rede-social/src/repository"
+	"io"
+	"log"
+	"net/http"
+)
 
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Criando Usuário!"))
+	corpoRequest, error := io.ReadAll(r.Body)
+	if error != nil {
+		log.Fatal(error)
+	}
+
+	var usuario model.Usuario
+
+	if error = json.Unmarshal(corpoRequest, &usuario); error != nil {
+		log.Fatal(error)
+	}
+
+	db, error := banco.Conectar()
+
+	if error != nil {
+		log.Fatal(error)
+	}
+
+	repositorio := repository.NovoRepositorioDeUsuarios(db)
+
+	ID, error := repositorio.CriarUsuario(usuario)
+
+	if error != nil {
+		log.Fatal(error)
+	}
+
+	w.Write([]byte(fmt.Sprintf("ID inserido: %d", ID)))
 }
 
 func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
