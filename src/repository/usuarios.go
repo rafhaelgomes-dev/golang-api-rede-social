@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"golang-rede-social/src/model"
 )
 
@@ -35,4 +36,33 @@ func (repositorio usuarios) CriarUsuario(usuario model.Usuario) (uint64, error) 
 	}
 
 	return uint64(ID), nil
+}
+
+// Buscar tras todos os usuáiros que atende o filtro de nome ou nick
+func (repositorio usuarios) Buscar(usuario string) ([]model.Usuario, error) {
+	usuario = fmt.Sprintf("%%%s%%", usuario) //%usuario%
+
+	linhas, error := repositorio.db.Query("select id, nome, nick, email, criadoEm from usuarios where nome like ? or nick like ?", usuario, usuario)
+	if error != nil {
+		return nil, error
+	}
+	defer linhas.Close()
+
+	var usuarios []model.Usuario
+
+	for linhas.Next() {
+		var usuario model.Usuario
+		if error = linhas.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.CriadoEm,
+		); error != nil {
+			return nil, error
+		}
+		usuarios = append(usuarios, usuario)
+	}
+
+	return usuarios, nil
 }

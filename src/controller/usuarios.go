@@ -2,46 +2,73 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-rede-social/src/banco"
 	"golang-rede-social/src/model"
 	"golang-rede-social/src/repository"
+	"golang-rede-social/src/response"
 	"io"
-	"log"
 	"net/http"
+	"strings"
 )
 
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, error := io.ReadAll(r.Body)
 	if error != nil {
-		log.Fatal(error)
+		response.Error(w, http.StatusUnprocessableEntity, error)
+		return
 	}
 
 	var usuario model.Usuario
 
 	if error = json.Unmarshal(corpoRequest, &usuario); error != nil {
-		log.Fatal(error)
+		response.Error(w, http.StatusBadRequest, error)
+		return
+	}
+
+	if error = usuario.Preparar(); error != nil {
+		response.Error(w, http.StatusBadRequest, error)
+		return
 	}
 
 	db, error := banco.Conectar()
 
 	if error != nil {
-		log.Fatal(error)
+		response.Error(w, http.StatusInternalServerError, error)
+		return
 	}
+	defer db.Close()
 
 	repositorio := repository.NovoRepositorioDeUsuarios(db)
 
 	ID, error := repositorio.CriarUsuario(usuario)
 
 	if error != nil {
-		log.Fatal(error)
+		response.Error(w, http.StatusInternalServerError, error)
+		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("ID inserido: %d", ID)))
+	usuario.ID = uint(ID)
+
+	response.JSON(w, http.StatusCreated, usuario)
 }
 
 func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando todos os Usuários!"))
+	nomeOuNick := strings.ToLower(r.URL.Query().Get("usuario"))
+
+	db, error := banco.Conectar()
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioDeUsuarios(db)
+	usuarios, error := repositorio.Buscar(nomeOuNick)
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+	response.JSON(w, http.StatusOK, usuarios)
 }
 
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
