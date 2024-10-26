@@ -8,7 +8,10 @@ import (
 	"golang-rede-social/src/response"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +75,33 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando um Usuário!"))
+	parametros := mux.Vars(r)
+
+	usuarioID, error := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+
+	if error != nil {
+		response.Error(w, http.StatusBadRequest, error)
+		return
+	}
+
+	db, error := banco.Conectar()
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioDeUsuarios(db)
+
+	usuario, error := repositorio.BuscarById(usuarioID)
+
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	response.JSON(w, http.StatusOK, usuario)
+
 }
 
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
