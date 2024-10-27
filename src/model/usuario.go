@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/badoux/checkmail"
 )
 
 type Usuario struct {
@@ -26,19 +28,23 @@ func (usuario *Usuario) Preparar(etapa string) error {
 
 func (usuario *Usuario) validar(etapa string) error {
 	if usuario.Nome == "" {
-		return errors.New("Nome é obrigatório")
+		return errors.New("nome é obrigatório")
 	}
 
 	if usuario.Nick == "" {
-		return errors.New("Nick é obrigatório")
+		return errors.New("nick é obrigatório")
 	}
 
 	if usuario.Email == "" {
-		return errors.New("Email é obrigatório")
+		return errors.New("email é obrigatório")
+	}
+
+	if error := checkmail.ValidateFormat(usuario.Email); error != nil {
+		return errors.New("email inserido inválido")
 	}
 
 	if etapa == "cadastro" && usuario.Senha == "" {
-		return errors.New("Senha é obrigatório")
+		return errors.New("senha é obrigatório")
 	}
 
 	return nil
