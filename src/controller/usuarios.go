@@ -28,7 +28,7 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if error = usuario.Preparar(); error != nil {
+	if error = usuario.Preparar("cadastro"); error != nil {
 		response.Error(w, http.StatusBadRequest, error)
 		return
 	}
@@ -105,9 +105,76 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 }
 
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Atualizando Usuário!"))
+	parametros := mux.Vars(r)
+	usuarioID, error := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+
+	if error != nil {
+		response.Error(w, http.StatusBadRequest, error)
+		return
+	}
+
+	corpoRequest, error := io.ReadAll(r.Body)
+	if error != nil {
+		response.Error(w, http.StatusUnprocessableEntity, error)
+		return
+	}
+
+	var usuario model.Usuario
+
+	if error := json.Unmarshal(corpoRequest, &usuario); error != nil {
+		response.Error(w, http.StatusBadRequest, error)
+		return
+	}
+
+	if error = usuario.Preparar("atualizacao"); error != nil {
+		response.Error(w, http.StatusBadRequest, error)
+		return
+	}
+
+	db, error := banco.Conectar()
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioDeUsuarios(db)
+
+	error = repositorio.AtualizarById(usuarioID, usuario)
+
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	response.JSON(w, http.StatusNoContent, nil)
+
 }
 
 func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Deletando Usuário!"))
+	parametros := mux.Vars(r)
+	usuarioID, error := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+
+	if error != nil {
+		response.Error(w, http.StatusBadRequest, error)
+		return
+	}
+
+	db, error := banco.Conectar()
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioDeUsuarios(db)
+
+	error = repositorio.DeletarById(usuarioID)
+
+	if error != nil {
+		response.Error(w, http.StatusInternalServerError, error)
+		return
+	}
+
+	response.JSON(w, http.StatusNoContent, nil)
 }
