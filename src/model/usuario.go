@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"golang-rede-social/src/seguranca"
 	"strings"
 	"time"
 
@@ -22,7 +23,9 @@ func (usuario *Usuario) Preparar(etapa string) error {
 	if erro := usuario.validar(etapa); erro != nil {
 		return erro
 	}
-	usuario.formatar()
+	if error := usuario.formatar(etapa); error != nil {
+		return error
+	}
 	return nil
 }
 
@@ -50,8 +53,20 @@ func (usuario *Usuario) validar(etapa string) error {
 	return nil
 }
 
-func (usuario *Usuario) formatar() {
+func (usuario *Usuario) formatar(etapa string) error {
 	usuario.Nome = strings.TrimSpace(usuario.Nome)
 	usuario.Nick = strings.TrimSpace(usuario.Nick)
 	usuario.Email = strings.TrimSpace(usuario.Email)
+
+	if etapa == "cadastro" {
+		senhaComHash, error := seguranca.Hash(usuario.Senha)
+
+		if error != nil {
+			return error
+		}
+
+		usuario.Senha = string(senhaComHash)
+	}
+
+	return nil
 }
